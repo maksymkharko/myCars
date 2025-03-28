@@ -51,6 +51,27 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
+function setupEventListeners() {
+    // Кнопка добавления автомобиля
+    document.querySelector('.add-car-button').addEventListener('click', () => {
+        addCarModal.style.display = 'block';
+    });
+
+    // Форма добавления
+    addCarForm.addEventListener('submit', handleAddCar);
+    
+    // Кнопка отмены
+    addCarModal.querySelector('.cancel-button').addEventListener('click', () => {
+        addCarModal.style.display = 'none';
+    });
+
+    // Закрытие модальных окон при клике вне их области
+    window.addEventListener('click', (e) => {
+        if (e.target === addCarModal) addCarModal.style.display = 'none';
+        if (e.target === viewCarModal) viewCarModal.style.display = 'none';
+    });
+}
+
 function handleTelegramAuth(user) {
     currentUser = {
         id: user.id.toString(),
@@ -102,56 +123,83 @@ async function saveCar(car) {
     }
 }
 
-async function deleteCar(carId) {
-    if (!currentUser) return false;
+async function handleAddCar(e) {
+    e.preventDefault();
     
-    try {
-        await remove(ref(db, `users/${currentUser.id}/cars/${carId}`));
-        return true;
-    } catch (error) {
-        console.error("Ошибка удаления:", error);
-        showToast("Ошибка удаления", "error");
-        return false;
+    const newCar = {
+        name: document.getElementById('carName').value,
+        mileage: parseInt(document.getElementById('mileage').value),
+        vin: document.getElementById('vin').value.toUpperCase(),
+        plate: document.getElementById('plate').value.toUpperCase(),
+        purchaseDate: document.getElementById('purchaseDate').value,
+        lastOilChangeMileage: parseInt(document.getElementById('lastOilChange').value),
+        lastTimingBeltMileage: parseInt(document.getElementById('lastTimingBelt').value),
+        insuranceEndDate: document.getElementById('insuranceEnd').value,
+        maintenanceEndDate: document.getElementById('maintenanceEnd').value,
+        description: document.getElementById('description').value || '',
+        link1: formatURL(document.getElementById('link1').value),
+        link2: formatURL(document.getElementById('link2').value),
+        link3: formatURL(document.getElementById('link3').value),
+        link4: formatURL(document.getElementById('link4').value),
+        createdAt: new Date().toISOString()
+    };
+
+    const carId = await saveCar(newCar);
+    if (carId) {
+        newCar.id = carId;
+        cars.push(newCar);
+        renderCarList();
+        addCarModal.style.display = 'none';
+        addCarForm.reset();
+        showToast('Автомобиль добавлен');
     }
 }
 
-// Остальные функции (setupEventListeners, renderCarList, showCarDetails и т.д.)
-// ... остальной ваш код остается без изменений ...
+function renderCarList() {
+    carList.innerHTML = '';
+    cars.forEach((car, index) => {
+        const carElement = document.createElement('div');
+        carElement.className = 'car-item';
+        carElement.innerHTML = `
+            <div class="car-name">${car.name}</div>
+            <div class="timer-container">
+                <div class="timer ${isDateWarning(car.insuranceEndDate) ? 'warning' : ''}">
+                    <div class="timer-label">Страховка</div>
+                    <div class="timer-value">${formatTimeRemaining(car.insuranceEndDate)}</div>
+                </div>
+                <div class="timer ${isDateWarning(car.maintenanceEndDate) ? 'warning' : ''}">
+                    <div class="timer-label">ТО</div>
+                    <div class="timer-value">${formatTimeRemaining(car.maintenanceEndDate)}</div>
+                </div>
+                <div class="timer">
+                    <div class="timer-label">До замены масла</div>
+                    <div class="timer-value">${formatMileageRemaining(car.mileage, car.lastOilChangeMileage)} км</div>
+                </div>
+            </div>
+        `;
+        carElement.addEventListener('click', () => showCarDetails(index));
+        carList.appendChild(carElement);
+    });
+}
+
+// Остальные вспомогательные функции
+function showToast(message, type = 'success') {
+    toast.textContent = message;
+    toast.className = `toast ${type}`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+function formatURL(url) {
+    if (!url) return '';
+    try {
+        new URL(url);
+        return url;
+    } catch {
+        return url.startsWith('http') ? url : `https://${url}`;
+    }
+}
 
 // Делаем функции доступными глобально для HTML
-window.copyVIN = function(vin) {
-    navigator.clipboard.writeText(vin).then(() => {
-        showToast('VIN скопирован');
-    }).catch(err => {
-        console.error('Failed to copy VIN:', err);
-        showToast('Ошибка при копировании VIN');
-    });
-};
-
-window.editDescription = function(index) {
-    const car = cars[index];
-    const description = car.description || '';
-    
-    const textarea = document.createElement('textarea');
-    textarea.value = description;
-    textarea.rows = 4;
-    textarea.className = 'description-edit';
-    
-    const descriptionDiv = viewCarModal.querySelector('.description-text');
-    const editButton = viewCarModal.querySelector('.edit-description-button');
-    
-    descriptionDiv.replaceWith(textarea);
-    
-    const saveButton = document.createElement('button');
-    saveButton.innerHTML = '<i class="fas fa-save"></i> Сохранить';
-    saveButton.className = 'save-description-button';
-    
-    saveButton.addEventListener('click', async () => {
-        car.description = textarea.value;
-        await saveCar(car);
-        showCarDetails(index);
-        showToast('Описание сохранено');
-    });
-    
-    editButton.replaceWith(saveButton);
-};
+window.copyVIN = copyVIN;
+window.editDescription = editDescription;
