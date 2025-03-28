@@ -1,5 +1,19 @@
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "5BaJOC0M4wQijmt8jCq1qgpg0iKpNfpSV5SrzCbx",
+    authDomain: "telegramstorage-5e85f.firebaseapp.com",
+    databaseURL: "https://telegramstorage-5e85f.firebaseio.com",
+    projectId: "telegramstorage-5e85f",
+    storageBucket: "telegramstorage-5e85f.appspot.com",
+    messagingSenderId: "794673027643",
+    appId: "1:794673027643:web:92a8afcdb21d7ccb729a1e"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 // Constants
-const STORAGE_KEY = 'clownadesCars';
 const OIL_CHANGE_INTERVAL = 10000; // 10,000 km
 const WARNING_DAYS = 7;
 
@@ -26,39 +40,102 @@ document.addEventListener('DOMContentLoaded', () => {
         tg.expand();
         tg.ready();
         
-        // Get user data from Telegram Web App
         if (tg.initDataUnsafe.user) {
-            currentUser = tg.initDataUnsafe.user;
-            showToast(`Добро пожаловать, ${currentUser.first_name}!`);
-            authContainer.style.display = 'none';
-            loadCars();
+            handleTelegramAuth(tg.initDataUnsafe.user);
         } else {
-            // Check if user data exists in localStorage
-            const storedUser = localStorage.getItem('telegram_user');
-            if (storedUser) {
-                currentUser = JSON.parse(storedUser);
-                authContainer.style.display = 'none';
-                loadCars();
-            } else {
-                authContainer.style.display = 'block';
-            }
+            authContainer.style.display = 'block';
         }
+    } else {
+        // Development mode (outside Telegram)
+        authContainer.style.display = 'block';
+        // Test user for development
+        handleTelegramAuth({ 
+            id: 123456789, 
+            first_name: "Тестовый",
+            last_name: "Пользователь"
+        });
     }
     
-    renderCarList();
     setupEventListeners();
 });
 
-// Override the onTelegramAuth function
+// Telegram Auth Handler
 window.onTelegramAuth = function(user) {
-    currentUser = user;
-    localStorage.setItem('telegram_user', JSON.stringify(user));
-    authContainer.style.display = 'none';
-    showToast(`Добро пожаловать, ${user.first_name}!`);
-    loadCars(); // Reload cars with user-specific data
+    handleTelegramAuth(user);
 };
 
-// Event Listeners Setup
+function handleTelegramAuth(user) {
+    currentUser = {
+        id: user.id.toString(),
+        firstName: user.first_name,
+        lastName: user.last_name || ''
+    };
+    
+    authContainer.style.display = 'none';
+    showToast(`Добро пожаловать, ${currentUser.firstName}!`);
+    loadCars();
+}
+
+// Firebase Functions
+async function loadCars() {
+    if (!currentUser) return;
+    
+    try {
+        const snapshot = await database.ref(`users/${currentUser.id}/cars`).once('value');
+        const carsData = snapshot.val() || {};
+        
+        // Convert to array
+        cars = Object.keys(carsData).map(key => ({
+            id: key,
+            ...carsData[key]
+        }));
+        
+        renderCarList();
+    } catch (error) {
+        console.error("Ошибка загрузки данных:", error);
+        showToast("Ошибка загрузки данных", "error");
+        cars = [];
+        renderCarList();
+    }
+}
+
+async function saveCar(car) {
+    if (!currentUser) {
+        showToast("Сначала авторизуйтесь", "error");
+        return null;
+    }
+    
+    try {
+        if (!car.id) {
+            const newCarRef = database.ref(`users/${currentUser.id}/cars`).push();
+            car.id = newCarRef.key;
+            await newCarRef.set(car);
+        } else {
+            await database.ref(`users/${currentUser.id}/cars/${car.id}`).set(car);
+        }
+        
+        return car.id;
+    } catch (error) {
+        console.error("Ошибка сохранения:", error);
+        showToast("Ошибка сохранения", "error");
+        return null;
+    }
+}
+
+async function deleteCar(carId) {
+    if (!currentUser) return false;
+    
+    try {
+        await database.ref(`users/${currentUser.id}/cars/${carId}`).remove();
+        return true;
+    } catch (error) {
+        console.error("Ошибка удаления:", error);
+        showToast("Ошибка удаления", "error");
+        return false;
+    }
+}
+
+// Event Listeners
 function setupEventListeners() {
     // Add car button
     document.querySelector('.add-car-button').addEventListener('click', () => {
@@ -90,64 +167,17 @@ function setupEventListeners() {
         if (e.target === addCarModal) addCarModal.style.display = 'none';
         if (e.target === viewCarModal) viewCarModal.style.display = 'none';
     });
+
+    // Uppercase inputs
+    document.getElementById('vin').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
+    });
+    document.getElementById('plate').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
+    });
 }
 
-// Car Management Functions
-async function loadCars() {
-    try {
-        // Try to load from Telegram cloud storage first
-        if (tg && currentUser) {
-            const userKey = `${STORAGE_KEY}_${currentUser.id}`;
-            try {
-                const tgData = await tg.CloudStorage.getItem(userKey);
-                if (tgData) {
-                    const data = JSON.parse(tgData);
-                    cars = data.cars || [];
-                    renderCarList();
-                    return;
-                }
-            } catch (e) {
-                console.error('Error loading from Telegram storage:', e);
-            }
-        }
-        
-        // Fallback to localStorage
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            const data = JSON.parse(stored);
-            cars = data.cars || [];
-            renderCarList();
-        }
-    } catch (e) {
-        console.error('Error loading cars:', e);
-        cars = [];
-        renderCarList();
-    }
-}
-
-async function saveCars() {
-    const data = JSON.stringify({ cars });
-    
-    try {
-        // Try to save to Telegram cloud storage first
-        if (tg && currentUser) {
-            const userKey = `${STORAGE_KEY}_${currentUser.id}`;
-            try {
-                await tg.CloudStorage.setItem(userKey, data);
-            } catch (e) {
-                console.error('Error saving to Telegram storage:', e);
-            }
-        }
-        
-        // Also save to localStorage as backup
-        localStorage.setItem(STORAGE_KEY, data);
-    } catch (e) {
-        console.error('Error saving cars:', e);
-        // Fallback to localStorage only
-        localStorage.setItem(STORAGE_KEY, data);
-    }
-}
-
+// Car Management
 async function handleAddCar(e) {
     e.preventDefault();
     
@@ -165,15 +195,19 @@ async function handleAddCar(e) {
         link1: formatURL(document.getElementById('link1').value),
         link2: formatURL(document.getElementById('link2').value),
         link3: formatURL(document.getElementById('link3').value),
-        link4: formatURL(document.getElementById('link4').value)
+        link4: formatURL(document.getElementById('link4').value),
+        createdAt: new Date().toISOString()
     };
 
-    cars.push(newCar);
-    await saveCars();
-    renderCarList();
-    addCarModal.style.display = 'none';
-    addCarForm.reset();
-    showToast('Автомобиль добавлен');
+    const carId = await saveCar(newCar);
+    if (carId) {
+        newCar.id = carId;
+        cars.push(newCar);
+        renderCarList();
+        addCarModal.style.display = 'none';
+        addCarForm.reset();
+        showToast('Автомобиль добавлен');
+    }
 }
 
 async function handleEditCar() {
@@ -209,49 +243,55 @@ async function handleEditCar() {
 async function handleDeleteCar() {
     if (currentCarIndex === -1) return;
     
-    cars.splice(currentCarIndex, 1);
-    await saveCars();
-    renderCarList();
-    viewCarModal.style.display = 'none';
-    confirmationDialog.style.display = 'none';
-    showToast('Автомобиль удален');
+    const carId = cars[currentCarIndex].id;
+    const success = await deleteCar(carId);
+    
+    if (success) {
+        cars.splice(currentCarIndex, 1);
+        renderCarList();
+        viewCarModal.style.display = 'none';
+        confirmationDialog.style.display = 'none';
+        showToast('Автомобиль удален');
+    }
 }
 
 // UI Functions
 function renderCarList() {
     carList.innerHTML = '';
+    if (cars.length === 0) {
+        carList.innerHTML = '<p class="no-cars">У вас пока нет добавленных автомобилей</p>';
+        return;
+    }
+    
     cars.forEach((car, index) => {
-        const carElement = createCarElement(car, index);
+        const carElement = document.createElement('div');
+        carElement.className = 'car-item';
+        carElement.innerHTML = `
+            <div class="car-name">${car.name}</div>
+            <div class="timer-container">
+                <div class="timer ${isDateWarning(car.insuranceEndDate) ? 'warning' : ''}">
+                    <div class="timer-label">Страховка</div>
+                    <div class="timer-value">${formatTimeRemaining(car.insuranceEndDate)}</div>
+                </div>
+                <div class="timer ${isDateWarning(car.maintenanceEndDate) ? 'warning' : ''}">
+                    <div class="timer-label">ТО</div>
+                    <div class="timer-value">${formatTimeRemaining(car.maintenanceEndDate)}</div>
+                </div>
+                <div class="timer">
+                    <div class="timer-label">До замены масла</div>
+                    <div class="timer-value">${formatMileageRemaining(car.mileage, car.lastOilChangeMileage)} км</div>
+                </div>
+            </div>
+        `;
+        carElement.addEventListener('click', () => showCarDetails(index));
         carList.appendChild(carElement);
     });
 }
 
-function createCarElement(car, index) {
-    const div = document.createElement('div');
-    div.className = 'car-item';
-    div.innerHTML = `
-        <div class="car-name">${car.name}</div>
-        <div class="timer-container">
-            <div class="timer ${isDateWarning(car.insuranceEndDate) ? 'warning' : ''}">
-                <div class="timer-label">Страховка</div>
-                <div class="timer-value">${formatTimeRemaining(car.insuranceEndDate)}</div>
-            </div>
-            <div class="timer ${isDateWarning(car.maintenanceEndDate) ? 'warning' : ''}">
-                <div class="timer-label">ТО</div>
-                <div class="timer-value">${formatTimeRemaining(car.maintenanceEndDate)}</div>
-            </div>
-            <div class="timer">
-                <div class="timer-label">До замены масла</div>
-                <div class="timer-value">${formatMileageRemaining(car.mileage, car.lastOilChangeMileage)} км</div>
-            </div>
-        </div>
-    `;
-
-    div.addEventListener('click', () => showCarDetails(index));
-    return div;
-}
-
-function renderCarInfo(car) {
+function showCarDetails(index) {
+    currentCarIndex = index;
+    const car = cars[index];
+    
     const carInfo = viewCarModal.querySelector('.car-info');
     carInfo.innerHTML = `
         <h3>${car.name}</h3>
@@ -303,68 +343,8 @@ function renderCarInfo(car) {
             ${renderLinks(car)}
         </div>
     `;
-}
-
-function renderCarInfoEditable(car) {
-    const carInfo = viewCarModal.querySelector('.car-info');
-    carInfo.innerHTML = `
-        <div class="form-group">
-            <label>Название:</label>
-            <input type="text" data-field="name" value="${car.name}" required>
-        </div>
-        <div class="form-group">
-            <label>VIN:</label>
-            <input type="text" data-field="vin" value="${car.vin}" required>
-        </div>
-        <div class="form-group">
-            <label>Номер:</label>
-            <input type="text" data-field="plate" value="${car.plate}" required>
-        </div>
-        <div class="form-group">
-            <label>Пробег (км):</label>
-            <input type="number" data-field="mileage" value="${car.mileage}" required>
-        </div>
-        <div class="form-group">
-            <label>Дата покупки:</label>
-            <input type="date" data-field="purchaseDate" value="${car.purchaseDate}" required>
-        </div>
-        <div class="form-group">
-            <label>Пробег на последней замене масла (км):</label>
-            <input type="number" data-field="lastOilChangeMileage" value="${car.lastOilChangeMileage}" required>
-        </div>
-        <div class="form-group">
-            <label>Пробег на последней замене ГРМ (км):</label>
-            <input type="number" data-field="lastTimingBeltMileage" value="${car.lastTimingBeltMileage}" required>
-        </div>
-        <div class="form-group">
-            <label>Страховка до:</label>
-            <input type="date" data-field="insuranceEndDate" value="${car.insuranceEndDate}" required>
-        </div>
-        <div class="form-group">
-            <label>ТО до:</label>
-            <input type="date" data-field="maintenanceEndDate" value="${car.maintenanceEndDate}" required>
-        </div>
-        <div class="form-group">
-            <label>Описание:</label>
-            <textarea data-field="description" rows="4">${car.description || ''}</textarea>
-        </div>
-        <div class="form-group">
-            <label>Ссылка 1:</label>
-            <input type="url" data-field="link1" value="${car.link1 || ''}">
-        </div>
-        <div class="form-group">
-            <label>Ссылка 2:</label>
-            <input type="url" data-field="link2" value="${car.link2 || ''}">
-        </div>
-        <div class="form-group">
-            <label>Ссылка 3:</label>
-            <input type="url" data-field="link3" value="${car.link3 || ''}">
-        </div>
-        <div class="form-group">
-            <label>Ссылка 4:</label>
-            <input type="url" data-field="link4" value="${car.link4 || ''}">
-        </div>
-    `;
+    
+    viewCarModal.style.display = 'block';
 }
 
 function renderLinks(car) {
@@ -376,22 +356,9 @@ function renderLinks(car) {
                     <label>Ссылка ${index + 1}:</label>
                     <a href="${url}" target="_blank">${url}</a>
                 </div>
-            ` : `
-                <div class="info-item">
-                    <label>Ссылка ${index + 1}:</label>
-                    <span class="no-link">Нет ссылки</span>
-                </div>
-            `;
+            ` : '';
         })
         .join('');
-}
-
-// Utility Functions
-function showCarDetails(index) {
-    currentCarIndex = index;
-    const car = cars[index];
-    renderCarInfo(car);
-    viewCarModal.style.display = 'block';
 }
 
 function showDeleteConfirmation() {
@@ -407,23 +374,32 @@ function copyVIN(vin) {
     });
 }
 
-function showToast(message) {
+function showToast(message, type = 'success') {
     toast.textContent = message;
+    toast.className = 'toast';
+    toast.classList.add(type);
     toast.style.display = 'block';
+    
     setTimeout(() => {
         toast.style.display = 'none';
     }, 3000);
 }
 
 function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('ru-RU');
+    if (!dateString) return 'Не указана';
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('ru-RU', options);
 }
 
 function formatTimeRemaining(dateString) {
+    if (!dateString) return 'Не указана';
+    
     const end = new Date(dateString);
     const now = new Date();
     const diff = end - now;
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    
+    if (days < 0) return 'Истекло';
     return `${days} дн.`;
 }
 
@@ -433,6 +409,8 @@ function formatMileageRemaining(currentMileage, lastChangeMileage) {
 }
 
 function isDateWarning(dateString) {
+    if (!dateString) return false;
+    
     const end = new Date(dateString);
     const now = new Date();
     const diff = end - now;
@@ -458,10 +436,10 @@ function editDescription(index) {
     saveButton.innerHTML = '<i class="fas fa-save"></i> Сохранить';
     saveButton.className = 'save-description-button';
     
-    saveButton.addEventListener('click', () => {
+    saveButton.addEventListener('click', async () => {
         car.description = textarea.value;
-        saveCars();
-        renderCarInfo(car);
+        await saveCar(car);
+        showCarDetails(index);
         showToast('Описание сохранено');
     });
     
@@ -474,75 +452,25 @@ function formatURL(url) {
     url = url.trim();
     if (!url) return '';
     
-    // Remove any existing http:// or https:// to standardize the URL
-    url = url.replace(/^(https?:\/\/)/, '');
+    // Add https:// if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
     
-    // If the URL is still empty after trimming, return empty string
-    if (!url) return '';
-    
-    // Add https:// and check if it's valid
-    const fullUrl = `https://${url}`;
     try {
-        new URL(fullUrl);
-        return fullUrl;
+        new URL(url);
+        return url;
     } catch {
-        // If it's not a valid URL, return empty string
         return '';
     }
 }
 
-// Add input event listeners for VIN and plate number fields
-document.addEventListener('DOMContentLoaded', () => {
-    // Existing initialization code...
-    
-    // Add input event listeners for uppercase conversion
-    document.getElementById('vin').addEventListener('input', function(e) {
-        const start = this.selectionStart;
-        const end = this.selectionEnd;
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(start, end);
-    });
+// Make functions available globally for HTML onclick attributes
+window.copyVIN = copyVIN;
+window.editDescription = editDescription;
+window.onTelegramAuth = onTelegramAuth;
 
-    document.getElementById('plate').addEventListener('input', function(e) {
-        const start = this.selectionStart;
-        const end = this.selectionEnd;
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(start, end);
-    });
-    
-    // Add input event listeners for URL fields to show preview
-    ['link1', 'link2', 'link3', 'link4'].forEach(id => {
-        const input = document.getElementById(id);
-        const previewId = `${id}Preview`;
-        
-        // Create preview element if it doesn't exist
-        let preview = document.getElementById(previewId);
-        if (!preview) {
-            preview = document.createElement('div');
-            preview.id = previewId;
-            preview.className = 'url-preview';
-            input.parentNode.insertBefore(preview, input.nextSibling);
-        }
-        
-        input.addEventListener('input', function() {
-            const formattedUrl = formatURL(this.value);
-            if (formattedUrl) {
-                preview.textContent = `Будет сохранено как: ${formattedUrl}`;
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
-        });
-    });
-});
-
-// Start the application
-document.addEventListener('DOMContentLoaded', () => {
-    loadCars();
+// Update timers every minute
+setInterval(() => {
     renderCarList();
-    
-    // Update timers every minute
-    setInterval(() => {
-        renderCarList();
-    }, 60000);
-}); 
+}, 60000);
