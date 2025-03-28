@@ -5,15 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои авто</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="MycarsCLOWNADESbot" data-size="small" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
-    <script type="text/javascript">
-        function onTelegramAuth(user) {
-            // Store user data
-            localStorage.setItem('telegram_user', JSON.stringify(user));
-            // Reload the page to initialize with new user data
-            window.location.reload();
-        }
-    </script>
     <link rel="stylesheet" href="src/styles/app1.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -33,7 +24,9 @@
         <div class="auth-container" id="authContainer">
             <div class="auth-content">
                 <p>Для синхронизации данных между устройствами, пожалуйста, авторизуйтесь через Telegram</p>
-                <div id="telegram-login"></div>
+                <div id="telegram-login">
+                    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="MycarsCLOWNADESbot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                </div>
             </div>
         </div>
 
