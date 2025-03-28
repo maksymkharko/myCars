@@ -76,6 +76,21 @@ body {
     transform: translateY(1px);
 }
 
+.control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#telegram-login {
+    margin-right: 10px;
+}
+
+#telegram-login iframe {
+    border: none;
+    background: transparent;
+}
+
 .add-car-button {
     width: 40px;
     height: 40px;
@@ -109,12 +124,6 @@ body {
     text-align: left;
     display: flex;
     align-items: center;
-}
-
-.control-buttons {
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 /* Car List */

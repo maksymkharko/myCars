@@ -8,7 +8,10 @@
     <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="MycarsCLOWNADESbot" data-size="small" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
     <script type="text/javascript">
         function onTelegramAuth(user) {
-            alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+            // Store user data
+            localStorage.setItem('telegram_user', JSON.stringify(user));
+            // Reload the page to initialize with new user data
+            window.location.reload();
         }
     </script>
     <link rel="stylesheet" href="src/styles/app1.css">
@@ -20,6 +23,7 @@
         <div class="top-panel">
             <h1 class="main-title">Мои авто</h1>
             <div class="control-buttons">
+                <div id="telegram-login"></div>
                 <button class="add-car-button">
                     <i class="fas fa-plus"></i>
                 </button>

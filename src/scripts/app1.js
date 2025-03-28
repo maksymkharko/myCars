@@ -24,9 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
         tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
+        
+        // Get user data from Telegram Web App
+        if (tg.initDataUnsafe.user) {
+            currentUser = tg.initDataUnsafe.user;
+            showToast(`Добро пожаловать, ${currentUser.first_name}!`);
+            loadCars();
+        }
     }
     
-    loadCars();
     renderCarList();
     setupEventListeners();
 });
@@ -78,11 +84,16 @@ async function loadCars() {
         // Try to load from Telegram cloud storage first
         if (tg && currentUser) {
             const userKey = `${STORAGE_KEY}_${currentUser.id}`;
-            const tgData = await tg.CloudStorage.getItem(userKey);
-            if (tgData) {
-                const data = JSON.parse(tgData);
-                cars = data.cars || [];
-                return;
+            try {
+                const tgData = await tg.CloudStorage.getItem(userKey);
+                if (tgData) {
+                    const data = JSON.parse(tgData);
+                    cars = data.cars || [];
+                    renderCarList();
+                    return;
+                }
+            } catch (e) {
+                console.error('Error loading from Telegram storage:', e);
             }
         }
         
@@ -91,10 +102,12 @@ async function loadCars() {
         if (stored) {
             const data = JSON.parse(stored);
             cars = data.cars || [];
+            renderCarList();
         }
     } catch (e) {
         console.error('Error loading cars:', e);
         cars = [];
+        renderCarList();
     }
 }
 
@@ -105,7 +118,11 @@ async function saveCars() {
         // Try to save to Telegram cloud storage first
         if (tg && currentUser) {
             const userKey = `${STORAGE_KEY}_${currentUser.id}`;
-            await tg.CloudStorage.setItem(userKey, data);
+            try {
+                await tg.CloudStorage.setItem(userKey, data);
+            } catch (e) {
+                console.error('Error saving to Telegram storage:', e);
+            }
         }
         
         // Also save to localStorage as backup
