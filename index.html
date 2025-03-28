@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои авто</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="src/styles/app1.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="src/styles/app1.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Top Panel -->
         <div class="top-panel">
             <h1 class="main-title">Мои авто</h1>
             <div class="control-buttons">
@@ -20,7 +19,6 @@
             </div>
         </div>
 
-        <!-- Auth Container -->
         <div class="auth-container" id="authContainer">
             <div class="auth-content">
                 <p>Для синхронизации данных между устройствами, пожалуйста, авторизуйтесь через Telegram</p>
@@ -34,57 +32,25 @@
             </div>
         </div>
 
-        <!-- Car List -->
-        <div class="car-list" id="carList">
-            <!-- Cars will be added here dynamically -->
-        </div>
+        <div class="car-list" id="carList"></div>
     </div>
 
-    <!-- Add Car Modal -->
+    <!-- Модальные окна -->
     <div class="modal" id="addCarModal">
         <div class="modal-content">
             <h2>Добавить автомобиль</h2>
             <form id="addCarForm">
-                <!-- Все поля формы остаются без изменений -->
+                <!-- Все поля формы -->
             </form>
         </div>
     </div>
 
-    <!-- View/Edit Car Modal -->
-    <div class="modal" id="viewCarModal">
-        <div class="modal-content">
-            <h2>Информация об автомобиле</h2>
-            <div class="car-info">
-                <!-- Car info will be populated dynamically -->
-            </div>
-            <div class="modal-buttons">
-                <button class="edit-button">Редактировать</button>
-                <button class="delete-button">Удалить</button>
-                <button class="close-button">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirmation Dialog -->
-    <div class="confirmation-dialog" id="confirmationDialog">
-        <div class="dialog-content">
-            <p>Вы уверены, что хотите удалить этот автомобиль?</p>
-            <div class="dialog-buttons">
-                <button class="confirm-button">Удалить</button>
-                <button class="cancel-button">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
-
-    <!-- Firebase and Main App -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // Ваша конфигурация Firebase
+    <!-- Подключаем Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "5BaJOC0M4wQijmt8jCq1qgpg0iKpNfpSV5SrzCbx",
             authDomain: "telegramstorage-5e85f.firebaseapp.com",
@@ -94,22 +60,13 @@
             messagingSenderId: "794673027643",
             appId: "1:794673027643:web:92a8afcdb21d7ccb729a1e"
         };
-
+        
         // Инициализация Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
-        // Сделаем методы Firebase доступными глобально
-        window.firebaseDb = {
-            db: database,
-            ref,
-            set,
-            onValue,
-            remove
-        };
-
-        // Загружаем основной скрипт
-        import('./src/scripts/app1.js');
+        firebase.initializeApp(firebaseConfig);
+        window.firebaseDb = firebase.database();
     </script>
+
+    <!-- Основной скрипт -->
+    <script src="src/scripts/app1.js"></script>
 </body>
 </html>
