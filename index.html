@@ -134,68 +134,11 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
-    <script src="src/scripts/app1.js"></script>
-<!-- Вставьте перед закрывающим </body> -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-
-<script>
-  // Конфиг (замените appId на ваш!)
-  const firebaseConfig = {
-    apiKey: "5BaJOC0M4wQijmt8jCq1qgpg0iKpNfpSV5SrzCbx",
-    authDomain: "telegramstorage-5e85f.firebaseapp.com",
-    databaseURL: "https://telegramstorage-5e85f.firebaseio.com",
-    projectId: "telegramstorage-5e85f",
-    storageBucket: "telegramstorage-5e85f.appspot.com",
-    messagingSenderId: "794673027643",
-    appId: "1:794673027643:web:92a8afcdb21d7ccb729a1e" // ← Замените!
-  };
-
-  // Инициализация Firebase
-  const app = firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-
-  // Проверка подключения
-  database.ref('.info/connected').on('value', (snapshot) => {
-    console.log(snapshot.val() ? "🔥 Firebase подключён!" : "❌ Ошибка подключения");
-  });
-
-  // Функции для работы с данными
-  function saveUserData(userId, data) {
-    database.ref('users/' + userId).set(data)
-      .then(() => console.log("✅ Данные сохранены в Firebase!"))
-      .catch(error => console.error("Ошибка:", error));
-  }
-
-  function loadUserData(userId, callback) {
-    database.ref('users/' + userId).once('value')
-      .then(snapshot => callback(snapshot.val() || {}))
-      .catch(error => console.error("Ошибка загрузки:", error));
-  }
-
-  // Интеграция с Telegram WebApp
-  document.addEventListener('DOMContentLoaded', () => {
-    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
     
-    if (tgUser) {
-      const userId = tgUser.id.toString();
-      console.log("ID пользователя Telegram:", userId);
-
-      // Пример: загружаем данные при запуске
-      loadUserData(userId, (data) => {
-        console.log("Данные из Firebase:", data);
-        if (Object.keys(data).length === 0) {
-          console.log("Данных нет, создаём новые...");
-          saveUserData(userId, { 
-            name: tgUser.first_name || "Гость",
-            createdAt: new Date().toISOString() 
-          });
-        }
-      });
-
-      // Пример: сохраняем данные по кнопке (добавьте кнопку в HTML)
-      document.getElementById('save-btn')?.addEventListener('click', () => {
-        const userData = { 
-          lastUpdate
+    <!-- Main JS -->
+    <script src="src/scripts/app1.js"></script>
 </body>
-</html> 
+</html>
