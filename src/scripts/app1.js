@@ -10,6 +10,7 @@ const viewCarModal = document.getElementById('viewCarModal');
 const confirmationDialog = document.getElementById('confirmationDialog');
 const toast = document.getElementById('toast');
 const addCarForm = document.getElementById('addCarForm');
+const authContainer = document.getElementById('authContainer');
 
 // State
 let cars = [];
@@ -29,7 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tg.initDataUnsafe.user) {
             currentUser = tg.initDataUnsafe.user;
             showToast(`Добро пожаловать, ${currentUser.first_name}!`);
+            authContainer.style.display = 'none';
             loadCars();
+        } else {
+            // Check if user data exists in localStorage
+            const storedUser = localStorage.getItem('telegram_user');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                authContainer.style.display = 'none';
+                loadCars();
+            } else {
+                authContainer.style.display = 'block';
+            }
         }
     }
     
@@ -40,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // Override the onTelegramAuth function
 window.onTelegramAuth = function(user) {
     currentUser = user;
+    localStorage.setItem('telegram_user', JSON.stringify(user));
+    authContainer.style.display = 'none';
     showToast(`Добро пожаловать, ${user.first_name}!`);
     loadCars(); // Reload cars with user-specific data
 };
