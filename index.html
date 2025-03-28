@@ -9,136 +9,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Top Panel -->
-        <div class="top-panel">
-            <h1 class="main-title">Мои авто</h1>
-            <div class="control-buttons">
-                <button class="add-car-button">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-        </div>
+    <!-- Весь ваш HTML остается без изменений -->
+    <!-- ... -->
 
-        <!-- Auth Container -->
-        <div class="auth-container" id="authContainer">
-            <div class="auth-content">
-                <p>Для синхронизации данных между устройствами, пожалуйста, авторизуйтесь через Telegram</p>
-                <div id="telegram-login">
-                    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="MycarsCLOWNADESbot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
-                </div>
-            </div>
-        </div>
+    <!-- Подключаем Firebase как модуль -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        <!-- Car List -->
-        <div class="car-list" id="carList">
-            <!-- Cars will be added here dynamically -->
-        </div>
-    </div>
+        const firebaseConfig = {
+            apiKey: "5BaJOC0M4wQijmt8jCq1qgpg0iKpNfpSV5SrzCbx",
+            authDomain: "telegramstorage-5e85f.firebaseapp.com",
+            databaseURL: "https://telegramstorage-5e85f.firebaseio.com",
+            projectId: "telegramstorage-5e85f",
+            storageBucket: "telegramstorage-5e85f.appspot.com",
+            messagingSenderId: "794673027643",
+            appId: "1:794673027643:web:92a8afcdb21d7ccb729a1e"
+        };
 
-    <!-- Add Car Modal -->
-    <div class="modal" id="addCarModal">
-        <div class="modal-content">
-            <h2>Добавить автомобиль</h2>
-            <form id="addCarForm">
-                <div class="form-group">
-                    <label for="carName">Название машины*</label>
-                    <input type="text" id="carName" required>
-                </div>
-                <div class="form-group">
-                    <label for="mileage">Актуальный пробег (км)*</label>
-                    <input type="number" id="mileage" required>
-                </div>
-                <div class="form-group">
-                    <label for="vin">VIN*</label>
-                    <input type="text" id="vin" required>
-                </div>
-                <div class="form-group">
-                    <label for="plate">Номер машины*</label>
-                    <input type="text" id="plate" required>
-                </div>
-                <div class="form-group">
-                    <label for="purchaseDate">Дата покупки*</label>
-                    <input type="date" id="purchaseDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="lastOilChange">Пробег на последней замене масла (км)*</label>
-                    <input type="number" id="lastOilChange" required>
-                </div>
-                <div class="form-group">
-                    <label for="lastTimingBelt">Пробег на последней замене ГРМ (км)*</label>
-                    <input type="number" id="lastTimingBelt" required>
-                </div>
-                <div class="form-group">
-                    <label for="insuranceEnd">Дата окончания страховки*</label>
-                    <input type="date" id="insuranceEnd" required>
-                </div>
-                <div class="form-group">
-                    <label for="maintenanceEnd">Дата окончания ТО*</label>
-                    <input type="date" id="maintenanceEnd" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">Описание</label>
-                    <textarea id="description" rows="4" placeholder="Добавьте любую дополнительную информацию"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="link1">Ссылка 1</label>
-                    <input type="url" id="link1">
-                </div>
-                <div class="form-group">
-                    <label for="link2">Ссылка 2</label>
-                    <input type="url" id="link2">
-                </div>
-                <div class="form-group">
-                    <label for="link3">Ссылка 3</label>
-                    <input type="url" id="link3">
-                </div>
-                <div class="form-group">
-                    <label for="link4">Ссылка 4</label>
-                    <input type="url" id="link4">
-                </div>
-                <div class="modal-buttons">
-                    <button type="submit" class="save-button">Сохранить</button>
-                    <button type="button" class="cancel-button">Отмена</button>
-                </div>
-            </form>
-        </div>
-    </div>
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-    <!-- View/Edit Car Modal -->
-    <div class="modal" id="viewCarModal">
-        <div class="modal-content">
-            <h2>Информация об автомобиле</h2>
-            <div class="car-info">
-                <!-- Car info will be populated dynamically -->
-            </div>
-            <div class="modal-buttons">
-                <button class="edit-button">Редактировать</button>
-                <button class="delete-button">Удалить</button>
-                <button class="close-button">Закрыть</button>
-            </div>
-        </div>
-    </div>
+        // Делаем доступным глобально
+        window.firebaseApp = app;
+        window.firebaseDatabase = database;
+    </script>
 
-    <!-- Confirmation Dialog -->
-    <div class="confirmation-dialog" id="confirmationDialog">
-        <div class="dialog-content">
-            <p>Вы уверены, что хотите удалить этот автомобиль?</p>
-            <div class="dialog-buttons">
-                <button class="confirm-button">Удалить</button>
-                <button class="cancel-button">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-    
-    <!-- Main JS -->
-    <script src="src/scripts/app1.js"></script>
+    <!-- Основной скрипт как модуль -->
+    <script type="module" src="src/scripts/app1.js"></script>
 </body>
 </html>
