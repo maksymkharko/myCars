@@ -15,6 +15,7 @@ const addCarForm = document.getElementById('addCarForm');
 let cars = [];
 let currentCarIndex = -1;
 let tg = null;
+let currentUser = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCarList();
     setupEventListeners();
 });
+
+// Override the onTelegramAuth function
+window.onTelegramAuth = function(user) {
+    currentUser = user;
+    showToast(`Добро пожаловать, ${user.first_name}!`);
+    loadCars(); // Reload cars with user-specific data
+};
 
 // Event Listeners Setup
 function setupEventListeners() {
@@ -68,8 +76,9 @@ function setupEventListeners() {
 async function loadCars() {
     try {
         // Try to load from Telegram cloud storage first
-        if (tg) {
-            const tgData = await tg.CloudStorage.getItem(STORAGE_KEY);
+        if (tg && currentUser) {
+            const userKey = `${STORAGE_KEY}_${currentUser.id}`;
+            const tgData = await tg.CloudStorage.getItem(userKey);
             if (tgData) {
                 const data = JSON.parse(tgData);
                 cars = data.cars || [];
@@ -94,8 +103,9 @@ async function saveCars() {
     
     try {
         // Try to save to Telegram cloud storage first
-        if (tg) {
-            await tg.CloudStorage.setItem(STORAGE_KEY, data);
+        if (tg && currentUser) {
+            const userKey = `${STORAGE_KEY}_${currentUser.id}`;
+            await tg.CloudStorage.setItem(userKey, data);
         }
         
         // Also save to localStorage as backup
